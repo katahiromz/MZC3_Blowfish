@@ -20,6 +20,8 @@ void MBlowfish::_SetPassword0(const char *passwd, size_t len)
     size_t i, j;
     BF_Dword work, null0, null1;
 
+    assert(passwd || len == 0);
+
     if (len == 0)
         return;
 
@@ -58,6 +60,8 @@ void MBlowfish::_SetPassword0(const char *passwd, size_t len)
 
 void MBlowfish::_Enc(BF_Dword *x1, BF_Dword *x2)
 {
+    assert(x1);
+    assert(x2);
     BF_Dword w1 = *x1;
     BF_Dword w2 = *x2;
 
@@ -78,6 +82,8 @@ void MBlowfish::_Enc(BF_Dword *x1, BF_Dword *x2)
 
 void MBlowfish::_Dec(BF_Dword *x1, BF_Dword *x2)
 {
+    assert(x1);
+    assert(x2);
     BF_Dword w1 = *x1;
     BF_Dword w2 = *x2;
 
@@ -376,6 +382,8 @@ void MBlowfish::Reset()
 
 bool MBlowfish::Encrypt(void *ptr, long bytes)
 {
+    assert(ptr || bytes == 0);
+
     if (bytes % 8)
     {
         assert(0);
@@ -394,6 +402,8 @@ bool MBlowfish::Encrypt(void *ptr, long bytes)
 
 bool MBlowfish::Decrypt(void *ptr, long bytes)
 {
+    assert(ptr || bytes == 0);
+
     if (bytes % 8)
     {
         assert(0);
@@ -462,6 +472,7 @@ char *MBlowfish::DecryptWithLength(const void *ptr, long& length)
 
 #ifdef UNITTEST
     #include <cstdio>
+    #include <string>
     int main(void)
     {
         static const char orig[] = "Who is Katayama Hirofumi MZ?";
@@ -472,19 +483,17 @@ char *MBlowfish::DecryptWithLength(const void *ptr, long& length)
 
         long len = static_cast<int>(strlen(orig));
         printf("Original: %s\n", orig);
-        printf("Length: %d\n", len);
+        printf("Length: %ld\n", len);
 
         unsigned char *enc = bf.EncryptWithLength(orig, len);
-        printf("Encrypted: ");
-        for (int i = 0; i < len; i++)
-        {
-            printf("%02X", enc[i]);
-        }
-        printf("\nLength: %d\n", len);
+        std::string str;
+        MzcHexStringFromBytes(str, enc, enc + len);
+        printf("Encrypted: %s\n", str.c_str());
+        printf("Length: %ld\n", len);
 
         char *dec = bf.DecryptWithLength(enc, len);
         printf("Decrypted: %s\n", dec);
-        printf("Length: %d\n", len);
+        printf("Length: %ld\n", len);
 
         delete[] enc;
         delete[] dec;

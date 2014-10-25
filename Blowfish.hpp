@@ -18,22 +18,22 @@
 ////////////////////////////////////////////////////////////////////////////
 // little endian or big endian?
 
-#if !defined(MZC_LITTLE_ENDIAN) && !defined(MZC_BIG_ENDIAN)
-    #if defined(_WIN32) || defined(MSDOS)
-        #define MZC_LITTLE_ENDIAN
+#if !defined(LITTLE_ENDIAN) && !defined(BIG_ENDIAN)
+    #if defined(_WIN32) || defined(MSDOS) || defined(__i386__)
+        #define LITTLE_ENDIAN
     #else
-        #define MZC_BIG_ENDIAN
+        #define BIG_ENDIAN
     #endif
 #endif
 
-#if defined(MZC_LITTLE_ENDIAN) && defined(MZC_BIG_ENDIAN)
+#if defined(LITTLE_ENDIAN) && defined(BIG_ENDIAN)
     #error You lose!
 #endif
 
 ////////////////////////////////////////////////////////////////////////////
 // structures
 
-#ifdef MZC_LITTLE_ENDIAN
+#ifdef LITTLE_ENDIAN
     struct BF_4Bytes
     {
         unsigned long three:8;
@@ -42,7 +42,7 @@
         unsigned long zero:8;
     };
 #endif
-#ifdef MZC_BIG_ENDIAN
+#ifdef BIG_ENDIAN
     struct BF_4Bytes
     {
         unsigned long zero:8;
@@ -63,6 +63,30 @@ struct BF_QWord
     BF_Dword dword0;
     BF_Dword dword1;
 };
+
+////////////////////////////////////////////////////////////////////////////
+// MzcHexStringFromBytes
+
+#ifndef MzcHexStringFromBytes
+    template <typename T_STRING, typename T_ITER>
+    void MzcHexStringFromBytes(T_STRING& str, T_ITER begin_, T_ITER end_) {
+        typedef typename T_STRING::value_type T_CHAR;
+        static const char s_hex[] = "0123456789abcdef";
+        for (str.clear(); begin_ != end_; ++begin_)
+        {
+            const unsigned char by = *begin_;
+            str += static_cast<T_CHAR>(s_hex[by >> 4]);
+            str += static_cast<T_CHAR>(s_hex[by & 0x0F]);
+        }
+    }
+
+    template <typename T_STRING, typename T_CONTAINER>
+    inline void MzcHexStringFromBytes(T_STRING& str, const T_CONTAINER& bytes) {
+        MzcHexStringFromBytes(str, bytes.begin(), bytes.end());
+    }
+
+    #define MzcHexStringFromBytes MzcHexStringFromBytes
+#endif  // ndef MzcHexStringFromBytes
 
 ////////////////////////////////////////////////////////////////////////////
 // MBlowfish
