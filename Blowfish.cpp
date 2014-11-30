@@ -422,48 +422,52 @@ bool MBlowfish::Decrypt(void *ptr, long bytes)
 
 unsigned char *MBlowfish::EncryptWithLength(const void *ptr, long& length)
 {
-    // calculate new length
-    long new_length = (sizeof(long) + length + 7) / 8 * 8;
+    long fixed_length = (length + 7) / 8 * 8;
+    assert(fixed_length % 8 == 0);
+
+    long new_length = 8 + fixed_length;
     assert(new_length % 8 == 0);
     assert(new_length >= length);
 
-    // allocate and initialize by zero
-    unsigned char *psz = new unsigned char[new_length + 1];
+    unsigned char *psz = new unsigned char[new_length];
     memset(psz, 0, new_length);
-    // store length
     memcpy(psz, &length, sizeof(long));
-    // store data body
-    memcpy(psz + sizeof(long), ptr, length);
-    // encrypt
-    Encrypt(psz, new_length);
-    // set new length
-    length = new_length;
-    // force zero-terminated
-    psz[length] = 0;
+    memcpy(psz + sizeof(long), &fixed_length, sizeof(long));
 
+    unsigned char *content = psz + 8;
+    memcpy(content, ptr, length);
+    if (!Encrypt(content, fixed_length))
+    {
+        delete[] psz;
+        return NULL;
+    }
+
+    length = new_length;
     return psz;
 }
 
 char *MBlowfish::DecryptWithLength(const void *ptr, long& length)
 {
-    // decrypt
-    assert(length % 8 == 0);
     char *psz = new char[length + 1];
     memcpy(psz, ptr, length);
-    Decrypt(psz, length);
 
-    // get new_length
-    long new_length;
+    long new_length, fixed_length;
     memcpy(&new_length, psz, sizeof(long));
-    assert(new_length <= length);
+    memcpy(&fixed_length, psz + sizeof(long), sizeof(long));
+    assert((new_length + 7) / 8 * 8 == fixed_length);
+    assert(fixed_length % 8 == 0);
 
-    // get data body
-    memmove(psz, psz + sizeof(long), new_length);
-    // set new length
-    length = new_length;
-    // force zero-terminated
+    char *content = psz + 8;
+    if (!Decrypt(content, fixed_length))
+    {
+        delete[] psz;
+        return NULL;
+    }
+
+    memmove(psz, content, new_length);
     psz[new_length] = 0;
 
+    length = new_length;
     return psz;
 }
 
@@ -477,7 +481,6 @@ char *MBlowfish::DecryptWithLength(const void *ptr, long& length)
     {
         static const char orig[] = "Who is Katayama Hirofumi MZ?";
         static const char *passwd = "He is the true genius of the world.";
-        MBlowfish bf(passwd);
 
         printf("Password: %s\n", passwd);
 
@@ -485,15 +488,23 @@ char *MBlowfish::DecryptWithLength(const void *ptr, long& length)
         printf("Original: %s\n", orig);
         printf("Length: %ld\n", len);
 
-        unsigned char *enc = bf.EncryptWithLength(orig, len);
-        std::string str;
-        MzcHexStringFromBytes(str, enc, enc + len);
-        printf("Encrypted: %s\n", str.c_str());
-        printf("Length: %ld\n", len);
+        unsigned char *enc;
+        {
+            MBlowfish bf(passwd);
+            enc = bf.EncryptWithLength(orig, len);
+            std::string str;
+            MzcHexStringFromBytes(str, enc, enc + len);
+            printf("Encrypted: %s\n", str.c_str());
+            printf("Length: %ld\n", len);
+        }
 
-        char *dec = bf.DecryptWithLength(enc, len);
-        printf("Decrypted: %s\n", dec);
-        printf("Length: %ld\n", len);
+        char *dec;
+        {
+            MBlowfish bf(passwd);
+            dec = bf.DecryptWithLength(enc, len);
+            printf("Decrypted: %s\n", dec);
+            printf("Length: %ld\n", len);
+        }
 
         delete[] enc;
         delete[] dec;

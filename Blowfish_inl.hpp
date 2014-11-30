@@ -13,6 +13,11 @@ MZC_INLINE MBlowfish::MBlowfish(const char *passwd)
     SetPassword(passwd);
 }
 
+MZC_INLINE MBlowfish::MBlowfish(const char *passwd, std::size_t len)
+{
+    SetPassword(passwd, len);
+}
+
 MZC_INLINE /*virtual*/ MBlowfish::~MBlowfish()
 {
 }

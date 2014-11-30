@@ -96,6 +96,7 @@ class MBlowfish EXTENDS_MOBJECT
 public:
     MBlowfish();
     MBlowfish(const char *passwd);
+    MBlowfish(const char *passwd, std::size_t len);
     virtual ~MBlowfish();
 
     void SetPassword(const char *passwd);
